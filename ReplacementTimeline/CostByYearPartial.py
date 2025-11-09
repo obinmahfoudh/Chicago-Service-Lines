@@ -19,6 +19,7 @@ cbg = cbg.sort_values(by="Model_Score", ascending=False).reset_index(drop=True)
 ANNUAL_BUDGET = 53000000
 current_year = 2025
 total_cost= 0
+not_used= []
 
 cbg["Replacement_Year"] = None
 remaining = cbg.copy()
@@ -41,8 +42,14 @@ while not remaining.empty:
     # Remove assigned blocks from remaining
     remaining = remaining.drop(year_blocks)
     current_year += 1
+    not_used.append(budget)
 
-print(total_cost)
+print(f"Total cost is {total_cost}")
+print(f"Average budget not used per year {sum(not_used) / len(not_used)}")
+print(f"Max budget not used {max(not_used)}")
+print(f"Total budget not used {sum(not_used)}")
+print(f"Year to replace everything {current_year}")
+
 # Filter only blocks with a year assigned
 cbg = cbg[cbg["Replacement_Year"].notna()]
 cbg["Replacement_Year"] = cbg["Replacement_Year"].astype(int)
