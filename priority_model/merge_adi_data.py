@@ -47,8 +47,6 @@ def load_and_merge_adi_data(adi_path, cbg_path, cbg= None):
         try:
             return int(val)
         except:
-            global counter
-            counter += 1
             return 5
 
     print("Cleaning data (filling empty scores)")
