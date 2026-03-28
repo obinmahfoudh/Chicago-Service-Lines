@@ -1,43 +1,53 @@
 """
-This script uses the ACS B01001 table to find the number of children under 5 and add the data to our chicago block group data 
+This Module uses the ACS B01001 (Census) table to find the number of children under 5 and add the data to our chicago block group data 
 Creates bins for number of children under 5 to calculate a score for each block group. 
-Refer to Read.me for methodology
-Outputs:  ChicagoBlockGroupsWithACS.geojson 
+
+Inputs:
+    - Chicago Block Groups: 'chicago_block_groups.geojson'
+    - IL ACS Data (Cook and Dupage Counties): 'CSDT5Y2022.B01001-Data.csv'
+
+Outputs: 
+    - Returns: Geodata frame (Chicago block groups with ACS scores)
+    - Visualization: 'ACS_Score.png'
 """
+
+import config
 import geopandas as gpd
 import matplotlib.pyplot as plt
 import os
 import pandas as pd
 
-def load_and_merge_acs_data(acs_path, cbg_path):
-    # Read data
-    print("Reading data")
-    acs_data = pd.read_csv(acs_path)
-    cbg = gpd.read_file(cbg_path)
+def load_and_merge_acs_data(acs_path, cbg_path, cbg= None):
 
+    """
+    Calculates an ACS score for each block group in Chicago based on the number of children under 5 within that block group 
+    ACS score metrics taken from safe water engineering
+
+    Args:
+        acs_path (str): File path to ACS data
+        cbg_path (str): File path to chicago block group data
     
+    Returns:
+        geojson: A geojson in EPSG:4326 containing chicago block groups with acs data
+    """
 
-    print("Extracting data")
-    acs_data["GEOID"] = acs_data["GEO_ID"].str.extract(r'US(\d{12})')[0]
+    print("Merging ACS scores into dataframe")
 
-    print("Merging dataframes")
-    # Merge
-    cbg = cbg.merge(
-        acs_data[["GEOID", "B01001_003E", "B01001_027E"]],
-        on="GEOID",
-        how="left"
-    )
+    # Read data
+    acs_data = pd.read_csv(acs_path)
+    if cbg is None:
+        cbg = gpd.read_file(cbg_path)
 
     print("Counting children under 5")
     # Male <5
-    cbg["B01001_003E"] = pd.to_numeric(acs_data["B01001_003E"], errors='coerce')  
+    acs_data["B01001_003E"] = pd.to_numeric(acs_data["B01001_003E"], errors='coerce')  
     # Female <5
-    cbg["B01001_027E"] = pd.to_numeric(acs_data["B01001_027E"], errors='coerce')  
-    cbg["children_under_5"] = cbg["B01001_003E"] + cbg["B01001_027E"]
+    acs_data["B01001_027E"] = pd.to_numeric(acs_data["B01001_027E"], errors='coerce')  
+    acs_data["children_under_5"] = acs_data["B01001_003E"] + acs_data["B01001_027E"]
 
     print("Scoring block groups")
-    # Define scoring function
     def scoreACS(number):
+        """Set ACS score for block group depending on number of children under 5 present"""
         if number == 0:
             return 1
         elif number <= 10:
@@ -48,24 +58,27 @@ def load_and_merge_acs_data(acs_path, cbg_path):
             return 10
 
     # Apply score
-    cbg["ACS_Score"] = cbg["children_under_5"].apply(scoreACS)
+    acs_data["ACS_Score"] = acs_data["children_under_5"].apply(scoreACS)
 
-    print("ACS Score distribution:")
+    # Rename block group column to match ACS data column name
+    acs_data.rename(columns={"GEO_ID": "GEOIDFQ"}, inplace= True)
+    print("Merging data to dataframe")
+    # Merge
+    cbg = cbg.merge(
+        acs_data[["GEOIDFQ", "ACS_Score"]],
+        on="GEOIDFQ",
+        how="left"
+    )
+
+    print("/nACS Score distribution")
     print(f"Total block groups: {len(cbg)}")
     print(cbg["ACS_Score"].value_counts().sort_index())
 
-
     return cbg
     
-    # Prints for debugging
-    '''
-    # Print block groups with missing ACS score
-    missing_acs = cbg[cbg["ACS_Score"].isna()]
-    print("Block groups with missing ACS data:")
-    print(missing_acs[["GEOID"]])
-    '''
 
 def plot_acs_scores(cbg, output_path=None):
+    """Plot and save acs score map"""
     # Plot
     fig, ax = plt.subplots(figsize=(10, 10))
     cbg.plot(
@@ -80,23 +93,22 @@ def plot_acs_scores(cbg, output_path=None):
     plt.axis("off")
     if output_path:
         plt.savefig(output_path)
-    plt.tight_layout()
-    plt.show()
+    #plt.tight_layout()
+    #plt.show()
 
 def main():
-    os.chdir(os.path.dirname(os.path.abspath(__file__)))
     print("Running merge_acs_scores.py")
 
     merged = load_and_merge_acs_data(
-        "../data/ACSDT5Y2022.B01001-Data.csv",
-        "../outputs/geojsons/chicago_block_groups.geojson"
+        config.ACS_DATA, 
+        config.CHICAGO_BLOCK_GROUPS
     )
 
-    print("Saving file")
-    merged.to_file("../outputs/geojsons/chicago_block_groups_with_acs.geojson", driver="GeoJSON")
+    print("Saving file to " + config.GEOJSON_OUT)
+    merged.to_file(config.GEOJSON_OUT + "chicago_block_groups_with_acs.geojson", driver="GeoJSON")
     # merged.to_csv("../outputs/ChicagoBlockGroupsWithACS_ADI.csv")  # Optional CSV export
 
-    plot_acs_scores(merged, "../outputs/maps/ACS_Score.png")
+    plot_acs_scores(merged, config.MAPS_OUT + "ACS_Score.png")
 
 if __name__ == "__main__":
     main()

@@ -1,12 +1,34 @@
+"""
+This Module calculates a Cost of Living score for block groups in Chicago based off of Census ADI data and the number of children under 5
+COL Score is a score of 1-10 determining the vulnerability of the population with 10 being a highly vulnerable population.
+
+Inputs:
+    - Chicago Block Groups (With ACS and ADI scores)
+
+Outputs: 
+    - Returns: Geodata Frame (Chicago block groups with COL score) 
+    - Visualization: 'COL_Score.png'
+"""
+
+import config
 import geopandas as gpd
 import matplotlib.pyplot as plt
-import os
 
-def calculate_col(data_path):
-    # Set working directory
-    print("Reading file")
-    cbg = gpd.read_file(data_path)
-    print("Calculating scores")
+def calculate_col(cbg_path, cbg= None):
+    """
+    Calculates a COL score from the ACS and ADI scores
+    COL = 0.5 * ACS_SCORE + 0.5 * ADI_SCORE
+
+    Args:
+        cbg_path (str): File path to chicago block group data
+    
+    Returns:
+        geojson: A geojson in EPSG:4326 containing chicago block groups with ADI data
+    """
+    print("Calculating COL Score")
+    if cbg is None:
+        cbg = gpd.read_file(cbg_path)
+
     cbg["CoL"] = 0.5 * cbg["ADI_Score"] + 0.5 * cbg["ACS_Score"]
 
     return cbg
@@ -14,6 +36,7 @@ def calculate_col(data_path):
     
 
 def plot_col_scores(cbg, output_path = None):
+    """Plot and save col score map"""
     fig, ax = plt.subplots(figsize=(10, 10))
     cbg.plot(
         ax=ax,
@@ -29,19 +52,16 @@ def plot_col_scores(cbg, output_path = None):
     plt.tight_layout()
     if output_path:
         plt.savefig(output_path)
-    plt.savefig("CoL Score")
-    plt.show()
+    #plt.show()
 
 def main():
-    os.chdir(os.path.dirname(os.path.abspath(__file__)))
-    path = "../outputs/geojsons/chicago_block_groups_with_acs_adi.geojson"
+    print("Running calculate_col.py")
+    cbg = calculate_col(config.CHICAGO_BLOCK_GROUPS_ACS_ADI)
 
-    cbg = calculate_col(path)
-    cbg.to_file("../outputs/geojsons/chicago_block_groups_with_col.geojson", driver="GeoJSON")
+    print("Saving file to " + config.GEOJSON_OUT)
+    cbg.to_file(config.GEOJSON_OUT + "chicago_block_groups_with_col.geojson", driver="GeoJSON")
 
-    plot_col_scores(cbg, "../outputs/maps/CoLScore")
-
-    
+    plot_col_scores(cbg, config.MAPS_OUT + "CoLScore.png")
 
 if __name__ == "__main__":
     main()
