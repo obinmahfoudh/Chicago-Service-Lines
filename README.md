@@ -8,20 +8,23 @@ The prioritization method is adapted from a model used by Safe Water Engineering
 
 CoL = 0.5 * ADI Score + 0.5 * Children under 5 score
 
-Children under 5 score
-50+ children:  10
-11-50 children: 5
-1-10 children:   3
-No children:      1 
+Children under 5 score:
+
+- 50+ children:    10
+- 11-50 children:  5
+- 1-10 children:   3
+- No children:     1 
 
 **Likelihood of Lead (LoL):** The average number of service lines within the block group that are suspected to require replacement.
 Each score is normalized on a scale of 1 to 10. 
 
 LoL = Average score of each block group
 
-Lead and galvanized needing replacement lines: 10.
-Unknowns: 5
-Non-Lead: 0
+Score for each service line:
+
+- Lead and galvanized needing replacement lines: 10.
+- Unknowns: 5
+- Non-Lead: 0
 
 **Final Model**
 By multiplying CoL and LoL, we generate a composite priority score ranging from 0 to 100, identifying which block groups should be prioritized for service line replacement.
