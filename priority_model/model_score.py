@@ -11,7 +11,6 @@ Outputs:
 
 import config
 import geopandas as gpd
-import matplotlib.pyplot as plt
 from . import visualization
 
 def calculate_model_score(cbg_path= None, cbg= None, save_file = False):
