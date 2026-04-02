@@ -1,4 +1,7 @@
 """
+---------------------------------DEPRECATED-----------------------------------------
+ACS score now calculated in col_score module to simplify steps
+
 This Module uses the ACS B01001 (Census) table to find the number of children under 5 and add the data to our chicago block group data 
 Creates bins for number of children under 5 to calculate a score for each block group. 
 
@@ -17,7 +20,7 @@ import matplotlib.pyplot as plt
 import os
 import pandas as pd
 
-def load_and_merge_acs_data(acs_path, cbg_path, cbg= None):
+def load_and_merge_acs_data(acs_path, cbg_path= None, cbg= None):
 
     """
     Calculates an ACS score for each block group in Chicago based on the number of children under 5 within that block group 
@@ -35,8 +38,12 @@ def load_and_merge_acs_data(acs_path, cbg_path, cbg= None):
 
     # Read data
     acs_data = pd.read_csv(acs_path)
-    if cbg is None:
+    if cbg is not None:
+       print("Using provided GeoDataFrame") 
+    elif cbg_path is not None:
         cbg = gpd.read_file(cbg_path)
+    else:
+        raise ValueError('Must provide either \'cbg\' (GeoDataFrame) or a valid \'cbg_path\' (string).')
 
     print("Counting children under 5")
     # Male <5
@@ -77,7 +84,7 @@ def load_and_merge_acs_data(acs_path, cbg_path, cbg= None):
     return cbg
     
 
-def plot_acs_scores(cbg, output_path=None):
+def plot_acs_scores(cbg, output_path=config.MAPS_OUT + "ACS_Score.png"):
     """Plot and save acs score map"""
     # Plot
     fig, ax = plt.subplots(figsize=(10, 10))
@@ -108,7 +115,7 @@ def main():
     merged.to_file(config.GEOJSON_OUT + "chicago_block_groups_with_acs.geojson", driver="GeoJSON")
     # merged.to_csv("../outputs/ChicagoBlockGroupsWithACS_ADI.csv")  # Optional CSV export
 
-    plot_acs_scores(merged, config.MAPS_OUT + "ACS_Score.png")
+    plot_acs_scores(merged)
 
 if __name__ == "__main__":
     main()
