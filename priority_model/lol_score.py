@@ -1,6 +1,5 @@
 import config
 import geopandas as gpd
-import matplotlib.pyplot as plt
 from . import visualization
 import pandas as pd
 from shapely import wkt

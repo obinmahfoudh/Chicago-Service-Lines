@@ -23,7 +23,6 @@ Outputs:
 import config
 from . import visualization
 import geopandas as gpd
-import matplotlib.pyplot as plt
 import pandas as pd
 
 def calculate_col(acs_path, adi_path, cbg_path= None, cbg= None):

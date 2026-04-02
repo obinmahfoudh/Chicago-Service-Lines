@@ -17,7 +17,6 @@ import config
 import pandas as pd
 import geopandas as gpd
 from shapely import wkt
-import os
 import matplotlib.pyplot as plt
 from shapely.wkt import dumps
 
