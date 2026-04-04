@@ -13,6 +13,7 @@ import folium
 import branca.colormap as cm
 
 def create_interactive_map(gdf=None, gdf_path=None, output_path=config.MAPS_OUT + "chicago_interactive_map.html"):
+    print("Creating interactive model map")
     # Load data
     if gdf is not None:
         print("Using provided GeoDataFrame") 
@@ -33,7 +34,8 @@ def create_interactive_map(gdf=None, gdf_path=None, output_path=config.MAPS_OUT 
     m = folium.Map(location=[41.8781, -87.6298], zoom_start=11, tiles="cartodbpositron")
 
     # Choose columns wanted
-    hover_columns = ["GEOID", "CoL", "LoL", "Model_Score"]
+    columns = ["GEOID", "CoL", "LoL", "Model_Score"]
+    aliases = ["Block Group ID:", "Cost of Living:", "Likelihood of Lead:", "Final Priority Score:"]
     
     folium.GeoJson(
         gdf,
@@ -45,8 +47,8 @@ def create_interactive_map(gdf=None, gdf_path=None, output_path=config.MAPS_OUT 
             "fillOpacity": 0.7,
         },
         tooltip=folium.GeoJsonTooltip(
-            fields=hover_columns,
-            aliases=["Block Group ID:", "Cost of Living:", "Likelihood of Lead:", "Final Priority Score:"],
+            fields=columns,
+            aliases= aliases,
             localize=True,
             sticky=False,
             labels=True,
@@ -56,6 +58,13 @@ def create_interactive_map(gdf=None, gdf_path=None, output_path=config.MAPS_OUT 
                 border-radius: 3px;
                 box-shadow: 3px;
             """
+        ),
+        popup=folium.GeoJsonPopup(
+            fields=columns,
+            aliases= aliases,
+            localize=True,
+            labels=True,
+            style="background-color: white; color: #333; font-family: sans-serif; font-size: 12px; padding: 10px;"
         )
     ).add_to(m)
 

@@ -23,10 +23,10 @@ def calculate_model_score(cbg_path= None, cbg= None, save_file = False):
     else:
         raise ValueError('Must provide either \'cbg\' (GeoDataFrame) or a valid \'cbg_path\' (string).')
 
-    print("Calculating model scores")
+    print("Calculating priority model scores")
     cbg["Model_Score"] = cbg["CoL"] * cbg["LoL"]
     if save_file:
-        print("Saving files")
+        print("Saving file")
         cbg.to_file(config.GEOJSON_OUT + "model_scores.geojson",driver= "GeoJSON")
 
     return cbg

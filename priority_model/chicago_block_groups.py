@@ -36,10 +36,11 @@ def filter_chicago_block_groups(chicago_bounds_path, block_group_path, save_wkt=
         geojson: A geojson in EPSG:4326 containing chicago block groups
     """
 
+    print("Mapping chicago block groups")
     #Read files
     print("Loading chicago boundaries")
     df_chicago_boundaries = pd.read_csv(chicago_bounds_path)
-    print("Loading Il block groups")
+    print("Loading IL block groups")
     gdf_bg = gpd.read_file(block_group_path)
 
     print("Converting chicago boundaries to pandas geometry")

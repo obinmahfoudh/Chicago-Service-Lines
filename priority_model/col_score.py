@@ -135,7 +135,7 @@ def merge_adi(adi_path, cbg_path= None, cbg= None):
         geojson: A geojson in EPSG:4326 containing chicago block groups with ADI data
     """
 
-    print("Merging ADI score into dataframe")
+    print("Getting ADI scores from data")
 
     # Read data
     adi = pd.read_csv(adi_path)
