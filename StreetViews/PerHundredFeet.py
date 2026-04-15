@@ -1,117 +1,90 @@
+import config
 import geopandas as gpd
 import matplotlib.pyplot as plt
-import os
-import pandas as pd
-from shapely import wkt
-from shapely.geometry import LineString, MultiLineString
+from shapely.geometry import LineString, MultiLineString, Point
 from shapely.ops import substring
-from shapely.geometry import Point
 
 
-# Set working directory
-os.chdir(os.path.dirname(os.path.abspath(__file__)))
+def model_to_hundred_feet(model_path=None, model=None):
 
-
-model =  gpd.read_file("./Geometries/street_model_scores.geojson")
-
-
-gdf_streets_proj = model.to_crs(epsg=3435)
-
-
-def explode_and_split(geom):
-    if isinstance(geom, MultiLineString):
-        lines = geom.geoms
-    elif isinstance(geom, LineString):
-        lines = [geom]
+    if model is not None:
+       print("Using provided GeoDataFrame") 
+    elif model_path is not None:
+        model = gpd.read_file(model_path)
     else:
-        return []
-
-    segments = []
-    for line in lines:
-        if line.length < 1:
-            continue
-        start = 0.0
-        while start < line.length:
-            end = min(start + 100, line.length)
-            seg = substring(line, start, end)
-            segments.append(seg)
-            start = end
-    return segments
-
-def split_line_100ft(geom):
-    if geom.length < 1:  # Ignore super short/broken lines
-        return []
+        raise ValueError('Must provide either \'model\' (GeoDataFrame) or a valid \'model_path\' (string).')
     
-    segments = []
-    start = 0.0
-    while start < geom.length:
-        end = min(start + 100, geom.length)
-        seg = substring(geom, start, end)
-        segments.append(seg)
-        start = end
-    return segments
+    # Project to Illinois State Plane (Meters/Feet)
+    gdf_streets_proj = model.to_crs(epsg=3435)
+    
+    split_data = []
 
-split_segments = []
+    for idx, row in gdf_streets_proj.iterrows():
+        geom = row.geometry
+        
+        # Explode MultiLineStrings into a list of LineStrings
+        if isinstance(geom, MultiLineString):
+            lines = list(geom.geoms)
+        elif isinstance(geom, LineString):
+            lines = [geom]
+        else:
+            continue
 
-for idx, row in gdf_streets_proj.iterrows():
-    parts = explode_and_split(row.geometry)
-    for seg in parts:
-        split_segments.append({
-            "geometry": seg,
-            "Model_Score": row.get("Model_Score"),
-        })
+        # Split each LineString into 100ft chunks
+        for line in lines:
+            length = line.length
 
-# Create new GeoDataFrame
-gdf_segments = gpd.GeoDataFrame(split_segments, crs=gdf_streets_proj.crs)
+            start = 0.0
+            while start < length:
+                end = min(start + 100.0, length)
+                
+                # normalized=False tells shapely to use feet, not %
+                seg = substring(line, start, end, normalized=False)
+                
+                if not seg.is_empty:
+                    split_data.append({
+                        "geometry": seg,
+                        "Model_Score": row.get("Model_Score"),
+                        "OBJECTID": row.get("OBJECTID") 
+                    })
+                start = end
 
-'''
-endpoints = []
+    # Create the new GeoDataFrame
+    gdf_segments = gpd.GeoDataFrame(split_data, crs=gdf_streets_proj.crs)
+    
+    # Check lengths now
+    gdf_segments["length_ft"] = gdf_segments.geometry.length
+    print(f"Summary of lengths:\n{gdf_segments['length_ft'].describe()}")
+    
+    over_100 = gdf_segments[gdf_segments["length_ft"] > 100.001] 
+    print(f"Segments over 100 ft: {len(over_100)}")
 
-for seg in gdf_segments.geometry:
-    if seg is not None and isinstance(seg, LineString):
-        end = seg.coords[-1]
-        endpoints.append(Point(end))
+    print("Saving")
+    print(len(gdf_segments))
+    gdf_segments.to_file(config.GEOJSON_OUT + "streets_100ft_segments.geojson", driver="GeoJSON")
+    
+    
+    fig, ax = plt.subplots(figsize=(14, 12))
+    
+    # Plot segments
+    gdf_segments.plot(
+        ax=ax,
+        column="Model_Score",
+        cmap="OrRd",
+        linewidth=2,
+        legend=True,
+        legend_kwds={"label": "Model Score per 100 ft", "shrink": 0.6},
+        missing_kwds={"color": "lightgrey", "label": "No Data"}
+    )
+    
+    ax.set_title("Street Segments per 100 ft")
+    ax.set_axis_off()
+    plt.tight_layout()
+    plt.savefig(config.MAPS_OUT + "Model Score per 100 ft.png")
+    plt.show()
+    
+def main():
+    model_to_hundred_feet(model_path= config.STREET_MODEL)
 
-gdf_endpoints = gpd.GeoDataFrame(geometry=endpoints, crs=gdf_segments.crs)
-
-#Confirm we split to 100 ft
-
-# Check segment lengths
-gdf_segments["length_ft"] = gdf_segments.geometry.length
-
-# Print summary
-print("Segment Lengths (ft):")
-print(gdf_segments["length_ft"].describe())
-
-# Find any segments over 100 ft (should be 0 or just final remainders)
-over_100 = gdf_segments[gdf_segments["length_ft"] > 100]
-print(f"Segments over 100 ft: {len(over_100)}")
-'''
-gdf_segments = gdf_segments.to_crs(epsg=4326)
-
-print("Saving")
-gdf_segments.to_file("./Geometries/streets_100ft_segments.geojson", driver="GeoJSON")
-
-
-fig, ax = plt.subplots(figsize=(14, 12))
-
-# Plot segments
-gdf_segments.plot(
-    ax=ax,
-    column="Model_Score",
-    cmap="OrRd",
-    linewidth=2,
-    legend=True,
-    legend_kwds={"label": "Model Score per 100 ft", "shrink": 0.6},
-    missing_kwds={"color": "lightgrey", "label": "No Data"}
-)
-
-ax.set_title("Street Segments per 100 ft")
-ax.set_axis_off()
-plt.tight_layout()
-plt.savefig("Model Score per 100 ft")
-plt.show()
-
-
-
-
+if __name__ == "__main__":
+    main()

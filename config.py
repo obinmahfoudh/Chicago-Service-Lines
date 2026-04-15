@@ -10,6 +10,11 @@ CITY_BOUNDS = os.path.join(ROOT_DIR, "data/Geometries/CityBoundaries.csv")
 IL_BLOCK_GROUPS = os.path.join(ROOT_DIR, "data/Geometries/IL_BlockGroups/tl_2023_17_bg.shp")
 CHICAGO_BLOCK_GROUPS = os.path.join(ROOT_DIR, "outputs/geojsons/chicago_block_groups.geojson")
 SERVICE_LINES = os.path.join(ROOT_DIR, "data/Geometries/Service_Lines.csv")
+CHICAGO_STREETS = os.path.join(ROOT_DIR, "data/Geometries/transportation_20260402.csv")
+# Model
+MODEL = os.path.join(ROOT_DIR, "outputs/geojsons/model_scores.geojson")
+STREET_MODEL = os.path.join(ROOT_DIR, "outputs/geojsons/street_model_scores.geojson") 
+STREET_MODEL_HUNDRED_FOOT = os.path.join(ROOT_DIR, "outputs/geojsons/streets_100ft_segments.geojson") 
 # ACS-ADI
 ADI_DATA = os.path.join(ROOT_DIR, "data/IL_2022_ADI_Census_Block_Group_v4_0_1.csv")
 ACS_DATA = os.path.join(ROOT_DIR, "data/ACSDT5Y2022.B01001-Data.csv")

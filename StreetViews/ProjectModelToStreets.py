@@ -1,64 +1,68 @@
+import config
 import geopandas as gpd
 import matplotlib.pyplot as plt
-import os
 import pandas as pd
 from shapely import wkt
 from shapely import LineString
 from shapely.ops import substring
 
+def project_model_to_street(model_path = None, model= None):
+    print("Projecting model to streets")
+    # Read data
+    if model is not None:
+       print("Using provided GeoDataFrame") 
+    elif model_path is not None:
+        model = gpd.read_file(model_path)
+    else:
+        raise ValueError('Must provide either \'model\' (GeoDataFrame) or a valid \'model_path\' (string).')
+    
+    print("Loading street data")
+    street_data = pd.read_csv(config.CHICAGO_STREETS)
+    street_data['geometry'] = street_data['the_geom'].apply(wkt.loads)
+    
+    gdf_streets = gpd.GeoDataFrame(street_data, geometry='geometry', crs="EPSG:4326")
+    # Exclude highways and other interstate roads
+    #exclude_types = ['EXPY', 'ER', 'XR', 'PKWY', 'RL', 'SQ', 'SR', 'HWY', 'TOLL', 'PLZ', 'ORD', 'ROW']
+    #gdf_streets = gdf_streets[~gdf_streets["STREET_TYP"].isin(exclude_types) | gdf_streets["STREET_TYP"].isna()]
 
-# Set working directory
-os.chdir(os.path.dirname(os.path.abspath(__file__)))
+    print("Performing spatial join") 
+    # Project block group model to street crs to do a spatial join
+    model = model.to_crs(gdf_streets.crs)
+    segments_with_score = gpd.sjoin(
+        gdf_streets,
+        model[["GEOID", "Model_Score", "geometry"]],
+        how="left",
+        predicate="intersects"
+    )
+    print("Calculating average score for each street segment")
+    # Calculate mean score to get avaerage for each street segment
+    mean_scores = segments_with_score.groupby('OBJECTID')['Model_Score'].mean().reset_index()
+    # Merge back to streeg segment data
+    gdf_streets = gdf_streets.merge(mean_scores, on='OBJECTID', how='left')
 
+    # Save as geojson
+    gdf_streets.to_file(config.GEOJSON_OUT + "street_model_scores.geojson", driver="GeoJSON")
+    
+    # Plot figure
+    fig, ax = plt.subplots(figsize=(14, 12))
+    gdf_streets.plot(
+        ax=ax,
+        column="Model_Score",
+        cmap="OrRd",
+        linewidth=2,
+        legend=True,
+        legend_kwds={"label": "Block-Level Model Score", "shrink": 0.6},
+        missing_kwds={"color": "lightgrey", "label": "No Data"}
+    )
+    plt.title("Street Segments Colored by Block Group Model Score")
+    plt.axis("off")
+    plt.tight_layout()
+    plt.savefig(config.MAPS_OUT + "ModelPerStreetSegments.png")
+    
+    
+def main():
+    print("Running ProjectModelToStreets.py")
+    project_model_to_street(model_path=config.MODEL)
 
-model =  gpd.read_file("./Geometries/model_scores.geojson")
-
-
-print("Loading street data")
-street_data = pd.read_csv("../Streets/transportation_20250417.csv")
-street_data['geometry'] = street_data['the_geom'].apply(wkt.loads)
-
-gdf_streets = gpd.GeoDataFrame(street_data, geometry='geometry', crs="EPSG:4326")
-
-exclude_types = ['EXPY', 'ER', 'XR', 'PKWY', 'RL', 'SQ', 'SR', 'HWY', 'TOLL', 'PLZ', 'ORD', 'ROW']
-gdf_streets = gdf_streets[~gdf_streets["STREET_TYP"].isin(exclude_types) | gdf_streets["STREET_TYP"].isna()]
-
-
-model = model.to_crs(gdf_streets.crs)
-
-segments_with_score = gpd.sjoin(
-    gdf_streets,
-    model[["GEOID", "Model_Score", "geometry"]],
-    how="left",
-    predicate="intersects"
-)
-
-#print(segments_with_score["Model_Score"])
-segments_with_score.to_file("./Geometries/street_model_scores.geojson", driver="GeoJSON")
-
-
-fig, ax = plt.subplots(figsize=(14, 12))
-segments_with_score.plot(
-    ax=ax,
-    column="Model_Score",
-    cmap="OrRd",
-    linewidth=2,
-    legend=True,
-    legend_kwds={"label": "Block-Level Model Score", "shrink": 0.6},
-    missing_kwds={"color": "lightgrey", "label": "No Data"}
-)
-plt.title("Street Segments Colored by Block Group Model Score")
-plt.axis("off")
-plt.tight_layout()
-plt.savefig("ModelPerStreetSegments")
-plt.show()
-
-'''
-filtered_opp = segments_with_score[segments_with_score["STREET_TYP"].isin(exclude_types) | segments_with_score["STREET_TYP"].isna()]
-filtered_opp.plot(figsize=(12, 10), color='red', linewidth=2)
-plt.title("Excluded Streets (Likely Highways)")
-plt.axis('off')
-plt.tight_layout()
-plt.show()
-'''
-
+if __name__ == "__main__":
+    main()
