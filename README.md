@@ -1,3 +1,5 @@
+Checkout the mapping tool: https://v0-lead-mapper-chicago.vercel.app/
+
 Chicago has more lead service lines than any other U.S. city (over 400,000) posing a major public health concern. This project prioritizes replacement efforts using a block group–level risk model that combines demographic vulnerability (social cost of lead) with infrastructure data (likelihood of lead)
 
 # Priority Model
