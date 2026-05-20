@@ -31,6 +31,8 @@ def calculate_col(acs_path, adi_path, cbg_path= None, cbg= None):
     COL = 0.5 * ACS_SCORE + 0.5 * ADI_SCORE
 
     Args:
+        acs_path: path to acs data
+        adi_path: path do adi data
         Either:
             cbg_path (str): File path to chicago block group data
             cbg (GeoDataFrame): pre-loaded GeoDataFrame

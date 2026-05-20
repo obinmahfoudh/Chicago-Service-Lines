@@ -15,6 +15,6 @@ __all__ = [
     "calculate_lol_and_cost",
     "calculate_model_score",
     "plot_scores",
-    "create_interactive_map"
+    "create_interactive_map",
     "__version__"
 ]
